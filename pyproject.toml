@@ -1,0 +1,25 @@
+[project]
+name = "telescope-mcp"
+version = "0.1.0"
+description = "AI-powered debugging for Laravel applications using Telescope data through Model Context Protocol (MCP)"
+requires-python = ">=3.10"
+authors = [
+    {name = "Bradley Bernard", email = "bradbernard@me.com"}
+]
+dependencies = [
+    "fastmcp[cli]>=2.5.2",
+    "pymysql>=1.1.1",
+    "sqlalchemy>=2.0.41",
+]
+
+[project.scripts]
+telescope-mcp = "telescope_mcp_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+    "telescope_mcp_server.py",
+]
