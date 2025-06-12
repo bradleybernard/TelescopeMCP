@@ -46,6 +46,8 @@ DEFAULT_DB_PASS = "password"
 # Globals                                                                      #
 ################################################################################
 
+LARAVEL_PROJECT_PATH = os.getenv("LARAVEL_PROJECT_PATH")
+
 DB_URL = os.getenv(
     "DB_URL",
     "mysql+pymysql://{user}:{pwd}@{host}:{port}/{db}".format(
@@ -485,6 +487,7 @@ def get_request(batch_id: str) -> dict:
                 "notifications": "get_request_notifications(batch_id, page=1)" if "notification" in entry_counts else None,
                 "cache": "get_request_cache(batch_id, page=1)" if "cache" in entry_counts else None,
                 "redis": "get_request_redis(batch_id, page=1)" if "redis" in entry_counts else None,
+                "timing": "get_request_timing(batch_id)" if "debugbar" in entry_counts else None,
                 "response": "get_request_response(batch_id)",
                 # "headers": "get_request_headers(batch_id)",
                 # "payload": "get_request_payload(batch_id)",
@@ -886,6 +889,80 @@ def latest_request(uri_pattern: str) -> dict:
         }
     except Exception as e:
         return {"error": f"Database query failed: {str(e)}"}
+
+@mcp.tool(description="Get Laravel Debugbar timing breakdown for a request if available")
+def get_request_timing(batch_id: str) -> dict:
+    """Extract timing breakdown from Laravel Debugbar for a request."""
+    if not LARAVEL_PROJECT_PATH:
+        return {
+            "error": "LARAVEL_PROJECT_PATH environment variable not set.",
+            "help": "Set the absolute path to your Laravel project root to use this tool."
+        }
+    try:
+        # First, check if there's a debugbar entry for this batch
+        sql = (
+            "SELECT content FROM telescope_entries "
+            "WHERE batch_id = :bid AND type = 'debugbar' LIMIT 1"
+        )
+        rows = _fetch(ENGINE, sql, {"bid": batch_id})
+
+        if not rows:
+            return {"error": "No debugbar data found for this request"}
+
+        # Extract the debugbar request ID
+        content = json.loads(rows[0]["content"])
+        debugbar_id = content.get("requestId")
+
+        if not debugbar_id:
+            return {"error": "No requestId found in debugbar entry"}
+
+        # Construct path to debugbar JSON file
+        # Assuming we are running in a Laravel project
+        debugbar_path = os.path.join(LARAVEL_PROJECT_PATH, f"storage/debugbar/{debugbar_id}.json")
+
+        # Check if file exists and read it
+        if not os.path.exists(debugbar_path):
+            return {"error": f"Debugbar file not found: {debugbar_id}.json at path {debugbar_path}"}
+
+        with open(debugbar_path, 'r') as f:
+            debugbar_data = json.load(f)
+
+        # Extract timing information
+        time_data = debugbar_data.get("time", {})
+
+        # Build response with timing breakdown
+        timing_breakdown = []
+        total_duration = time_data.get("duration", 0)
+
+        for measure in time_data.get("measures", []):
+            percentage = round((measure["duration"] / total_duration * 100), 1) if total_duration > 0 else 0
+            timing_breakdown.append({
+                "phase": measure["label"],
+                "duration_ms": round(measure["duration"] * 1000, 2),
+                "duration_str": measure["duration_str"],
+                "start_ms": round(measure["relative_start"] * 1000, 2),
+                "percentage": f"{percentage}%"
+            })
+
+        return {
+            "batch_id": batch_id,
+            "debugbar_id": debugbar_id,
+            "total_duration": time_data.get("duration_str", "N/A"),
+            "total_duration_ms": round(total_duration * 1000, 2),
+            "timing_breakdown": timing_breakdown,
+            "queries": {
+                "count": debugbar_data.get("queries", {}).get("nb_statements", 0),
+                "time": debugbar_data.get("queries", {}).get("accumulated_duration_str", "0ms")
+            },
+            "memory": {
+                "peak_usage": debugbar_data.get("memory", {}).get("peak_usage_str", "N/A")
+            }
+        }
+
+    except json.JSONDecodeError as e:
+        return {"error": f"Invalid JSON in debugbar file: {str(e)}"}
+    except Exception as e:
+        return {"error": f"Failed to fetch timing data: {str(e)}"}
 
 
 ################################################################################

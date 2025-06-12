@@ -53,7 +53,8 @@ claude mcp add-json telescope '{
     "telescope_mcp_server.py"
   ],
   "env": {
-    "DB_URL": "mysql+pymysql://sail:password@127.0.0.1:3306/laravel"
+    "DB_URL": "mysql+pymysql://sail:password@127.0.0.1:3306/laravel",
+    "LARAVEL_PROJECT_PATH": "/path/to/your/laravel/project"
   }
 }'
 
@@ -79,7 +80,8 @@ To reconfigure, run `claude mcp remove telescope` first.
         "telescope_mcp_server.py"
       ],
       "env": {
-        "DB_URL": "mysql+pymysql://user:pass@host:port/db"
+        "DB_URL": "mysql+pymysql://user:pass@host:port/db",
+        "LARAVEL_PROJECT_PATH": "/path/to/your/laravel/project"
       }
     }
   }
@@ -126,12 +128,21 @@ Once configured, you can ask your AI assistant to interact with your Laravel Tel
 3.  **get_request(batch_id)**: Get an overview of a specific request.
 4.  **get_request_queries(batch_id, page=1)**: Get SQL queries for a request.
 5.  **get_request_models(batch_id, page=1)**: Get model operations for a request.
-6.  **get_request_response(batch_id)**: Get the full response data.
-7.  **slow_queries()**: Find all database queries exceeding a time threshold.
+6.  **get_request_views(batch_id, page=1)**: Get view data for a request.
+7.  **get_request_cache(batch_id, page=1)**: Get cache events for a request.
+8.  **get_request_redis(batch_id, page=1)**: Get Redis commands for a request.
+9.  **get_request_notifications(batch_id, page=1)**: Get notifications for a request.
+10. **get_request_timing(batch_id)**: Get timing breakdown from Laravel Debugbar.
+11. **get_request_response(batch_id)**: Get the full response data.
+12. **slow_queries()**: Find all database queries exceeding a time threshold.
 
 ## Configuration
 
-The recommended way to configure your database connection is with the `DB_URL` environment variable in the MCP setup.
+The server is configured through environment variables passed in your MCP setup.
+
+### Database Connection
+
+The recommended way to configure your database connection is with the `DB_URL` environment variable.
 
 `DB_URL="mysql+pymysql://username:password@host:port/database"`
 
@@ -139,6 +150,22 @@ Example for Laravel Sail:
 `DB_URL="mysql+pymysql://sail:password@127.0.0.1:3306/laravel"`
 
 Alternatively, you can set individual environment variables: `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`. If `DB_URL` is set, it takes precedence.
+
+### Laravel Project Path (for Debugbar)
+
+To use the `get_request_timing` tool, you must provide the absolute path to your Laravel project root directory via the `LARAVEL_PROJECT_PATH` environment variable. The server uses this path to locate Laravel Debugbar's JSON storage files.
+
+**Example:**
+`LARAVEL_PROJECT_PATH="/Users/me/Code/my-laravel-app"`
+
+Add this to your `env` configuration in your MCP setup:
+
+```json
+"env": {
+  "DB_URL": "mysql+pymysql://sail:password@127.0.0.1:3306/laravel",
+  "LARAVEL_PROJECT_PATH": "/path/to/your/laravel/project"
+}
+```
 
 ## Development
 
