@@ -1,10 +1,5 @@
 # Laravel Telescope MCP Server
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Laravel](https://img.shields.io/badge/Laravel-Compatible-red.svg)](https://laravel.com)
-[![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
-
 A Model Context Protocol (MCP) server that provides AI agents with direct access to Laravel Telescope data, enabling efficient debugging and analysis of Laravel applications.
 
 ## Key Features
