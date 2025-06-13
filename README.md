@@ -33,34 +33,40 @@ uv sync
 
 ### Step 3: Configure your AI assistant
 
+Navigate to your **Laravel project's root directory** to perform this step, not the `TelescopeMCP` directory.
+
 #### For Claude Code (Recommended)
-Use the `claude mcp` command to connect the MCP server. This example uses the default Laravel Sail database credentials.
+
+Use the `claude mcp` command to connect the MCP server. This will create or update a `.claude/mcp.json` file in your Laravel project, telling your AI assistant how to communicate with the Telescope MCP server.
+
+Run the following command after replacing the placeholder paths with the correct absolute paths for your system. This example uses database credentials for a default Laravel Sail setup.
 
 ```bash
-# Get the full path to uv and the current directory
-UV_PATH=$(which uv)
-MCP_DIR=$(pwd)
-
-# Add the MCP server configuration
+# From your Laravel project root directory:
 claude mcp add-json telescope '{
   "type": "stdio",
-  "command": "'"$UV_PATH"'",
+  "command": "/path/to/uv",
   "args": [
     "--directory",
-    "'"$MCP_DIR"'",
+    "/path/to/TelescopeMCP",
     "run",
     "python",
     "telescope_mcp_server.py"
   ],
   "env": {
     "DB_URL": "mysql+pymysql://sail:password@127.0.0.1:3306/laravel",
-    "LARAVEL_PROJECT_PATH": "/path/to/your/laravel/project"
+    "LARAVEL_PROJECT_PATH": "/path/to/laravel-project"
   }
 }'
-
-# Restart Claude Code to apply changes
 ```
-To reconfigure, run `claude mcp remove telescope` first.
+
+-   **`/path/to/uv`**: Replace with the absolute path to the `uv` executable. Find it by running `which uv`.
+-   **`/path/to/TelescopeMCP`**: Replace with the absolute path to the `TelescopeMCP` directory you cloned in Step 2.
+-   **`/path/to/laravel-project`**: Replace with the absolute path to your Laravel project root directory.
+
+After running the command, restart Claude Code to apply the changes. Once you boot up `claude` you should be able to run `/mcp` to see `telescope` connected and ready to use.
+
+To reconfigure (ie: change the database URL or Laravel project path), run `claude mcp remove telescope` first from your Laravel project directory, then re-run the `claude mcp add-json telescope` command above.
 
 #### For Claude Desktop
 1.  Open `Claude` → `Settings` → `Developer` → `Edit Config`.
@@ -128,13 +134,15 @@ Once configured, you can ask your AI assistant to interact with your Laravel Tel
 3.  **get_request(batch_id)**: Get an overview of a specific request.
 4.  **get_request_queries(batch_id, page=1)**: Get SQL queries for a request.
 5.  **get_request_models(batch_id, page=1)**: Get model operations for a request.
-6.  **get_request_views(batch_id, page=1)**: Get view data for a request.
-7.  **get_request_cache(batch_id, page=1)**: Get cache events for a request.
-8.  **get_request_redis(batch_id, page=1)**: Get Redis commands for a request.
-9.  **get_request_notifications(batch_id, page=1)**: Get notifications for a request.
-10. **get_request_timing(batch_id)**: Get timing breakdown from Laravel Debugbar.
-11. **get_request_response(batch_id)**: Get the full response data.
-12. **slow_queries()**: Find all database queries exceeding a time threshold.
+6.  **get_request_jobs(batch_id, page=1)**: Get jobs for a request.
+7.  **get_request_views(batch_id, page=1)**: Get view data for a request.
+8.  **get_request_cache(batch_id, page=1)**: Get cache events for a request.
+9.  **get_request_redis(batch_id, page=1)**: Get Redis commands for a request.
+10. **get_request_notifications(batch_id, page=1)**: Get notifications for a request.
+11. **get_request_timing(batch_id)**: Get timing breakdown from Laravel Debugbar.
+12. **get_request_response(batch_id)**: Get the full response data.
+13. **get_request_payload(batch_id)**: Get the request payload (form data or JSON body).
+14. **slow_queries()**: Find all database queries exceeding a time threshold.
 
 ## Configuration
 

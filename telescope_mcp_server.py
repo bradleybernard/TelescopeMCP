@@ -483,14 +483,15 @@ def get_request(batch_id: str) -> dict:
             "available_tools": {
                 "queries": "get_request_queries(batch_id, page=1)" if "query" in entry_counts else None,
                 "models": "get_request_models(batch_id, page=1)" if "model" in entry_counts else None,
+                "jobs": "get_request_jobs(batch_id, page=1)" if "job" in entry_counts else None,
                 "views": "get_request_views(batch_id, page=1)" if "view" in entry_counts else None,
                 "notifications": "get_request_notifications(batch_id, page=1)" if "notification" in entry_counts else None,
                 "cache": "get_request_cache(batch_id, page=1)" if "cache" in entry_counts else None,
                 "redis": "get_request_redis(batch_id, page=1)" if "redis" in entry_counts else None,
                 "timing": "get_request_timing(batch_id)" if "debugbar" in entry_counts else None,
                 "response": "get_request_response(batch_id)",
+                "payload": "get_request_payload(batch_id)",
                 # "headers": "get_request_headers(batch_id)",
-                # "payload": "get_request_payload(batch_id)",
                 # "session": "get_request_session(batch_id)"
             }
         }
@@ -718,6 +719,52 @@ def get_request_notifications(batch_id: str, page: int = 1) -> dict:
         return {"error": f"Failed to fetch notifications: {str(e)}"}
 
 
+@mcp.tool(description="Get paginated jobs for a request. Shows 10 per page.")
+def get_request_jobs(batch_id: str, page: int = 1) -> dict:
+    """Get jobs for a request with pagination."""
+    try:
+        sql = (
+            "SELECT content, created_at FROM telescope_entries "
+            "WHERE batch_id = :bid AND type = 'job' ORDER BY sequence"
+        )
+        rows = _fetch(ENGINE, sql, {"bid": batch_id})
+
+        jobs = []
+        for row in rows:
+            content = fix_escaped_json(json.loads(row["content"]))
+
+            # Extract relevant data from job content
+            job_data = {
+                "name": content.get("name"),
+                "status": content.get("status"),
+                "connection": content.get("connection"),
+                "queue": content.get("queue"),
+                "tries": content.get("tries"),
+                "timeout": content.get("timeout"),
+                "timestamp": str(row["created_at"]),
+            }
+
+            # Add user info if available
+            if content.get("user"):
+                job_data["user"] = {
+                    "id": content.get("user", {}).get("id"),
+                    "name": content.get("user", {}).get("name")
+                }
+
+            jobs.append(job_data)
+
+        paginated = paginate(jobs, page=page, limit=DEFAULT_PAGE_SIZE)
+
+        return {
+            "batch_id": batch_id,
+            "type": "jobs",
+            "items": paginated["items"],
+            "pagination": paginated["pagination"],
+        }
+    except Exception as e:
+        return {"error": f"Failed to fetch jobs: {str(e)}"}
+
+
 @mcp.tool(description="Get paginated queries for a request. Shows 10 queries per page with full SQL.")
 def get_request_queries(batch_id: str, page: int = 1) -> dict:
     """Get database queries for a request with pagination."""
@@ -805,6 +852,30 @@ def get_request_response(batch_id: str) -> dict:
         }
     except Exception as e:
         return {"error": f"Failed to fetch response: {str(e)}"}
+
+
+@mcp.tool(description="Get the request payload (form data or JSON body).")
+def get_request_payload(batch_id: str) -> dict:
+    """Get the payload data for a request."""
+    try:
+        sql = (
+            "SELECT content FROM telescope_entries "
+            "WHERE batch_id = :bid AND type = 'request' LIMIT 1"
+        )
+        rows = _fetch(ENGINE, sql, {"bid": batch_id})
+        
+        if not rows:
+            return {"error": f"No request found for batch_id: {batch_id}"}
+        
+        content = fix_escaped_json(json.loads(rows[0]["content"]))
+        
+        return {
+            "batch_id": batch_id,
+            "type": "payload",
+            "payload": content.get("payload", {})
+        }
+    except Exception as e:
+        return {"error": f"Failed to fetch payload: {str(e)}"}
 
 
 @mcp.tool(description="Get the N most recent requests with optional URI filter")
